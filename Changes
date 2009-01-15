@@ -1,0 +1,6 @@
+Revision history for Perl extension Finance::Quote::Sberbank.
+
+0.01  Sun Dec 28 23:09:27 2008
+	- original version; created by h2xs 1.23 with options
+		-AX -n Finance::Quote::Sberbank
+
