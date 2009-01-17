@@ -1,4 +1,4 @@
-Finance-Quote-Sberbank version 0.01
+Finance-Quote-Sberbank version 0.02
 ===================================
 
 Obtain quotes from Sberbank (Savings Bank of the Russian Federation)
@@ -28,7 +28,9 @@ This module fetches metal quotes information from the Sberbank (Savings
 
 It's not loaded as default Finance::Quote module, so you need create it
  by Finance::Quote->new("Sberbank"). If you want it to load by default,
- make changes to Finance::Quote default module loader.
+ make changes to Finance::Quote default module loader, or use 
+ FQ_LOAD_QUOTELET environment variable. Gnucash example:
+	FQ_LOAD_QUOTELET="-defaults Sberbank" gnucash
 
 COPYRIGHT AND LICENCE
 

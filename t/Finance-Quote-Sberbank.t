@@ -3,19 +3,17 @@
 
 #########################
 
-# change 'tests => 1' to 'tests => last_test_to_print';
-
 use encoding 'utf8';
-use Test::More tests => 5;
+use Test::More;
 
-BEGIN { 
-	use_ok('Finance::Quote');
-	use_ok('Finance::Quote::Sberbank');
-#########################
+if(not $ENV{ONLINE_TEST}) {
+	plan skip_all => 'Set $ENV{ONLINE_TEST} to run this test';
+}
 
-# Insert your test code below, the Test::More module is use()ed here so read
-# its man page ( perldoc Test::More ) for help writing this test script.
+plan tests => 5;
 
+use_ok('Finance::Quote');
+use_ok('Finance::Quote::Sberbank');
 
 my $quoter = Finance::Quote->new("Sberbank");
 
@@ -27,4 +25,3 @@ ok(%info, "fetched");
 
 ok($info{"SBRF.PD", "name"}, "palladium");
 
-};

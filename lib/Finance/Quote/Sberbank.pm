@@ -18,13 +18,15 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(
 );
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 our $SBERBANK_URL = "http://sbrf.ru/ru/valkprev/archive_1/";
 
 use LWP::UserAgent;
 use HTTP::Request::Common;
 use Spreadsheet::Read;
+use Time::Local;
+use POSIX;
 
 sub methods { return ( sberbank => \&sberbank ); }
 
@@ -38,10 +40,10 @@ sub sberbank {
 	my $quoter = shift;
 	my @stocks = @_;
 	my %info;
-	my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = gmtime(time);
+	my $last_time = time;
+	my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = gmtime($last_time);
 	$year += 1900;
 	$mon++;
-    
 	my $ua = $quoter->user_agent;
 	my $url = "http://sbrf.ru/ru/valkprev/archive_1/index.php?year114=${year}&month114=${mon}";
 	my $response = $ua->request(GET $url);
@@ -53,10 +55,11 @@ sub sberbank {
 		return wantarray() ? %info : \%info;
 	}
 	my $link = "";
-	my $last_time = $mday * 24 * 60 + $hour * 60 + $min;
 	my $content = $response->content;
+	$ENV{TZ} = 'Europe/Moscow';
+	POSIX::tzset(); 
 	while($content =~ /<li class="xls"><a href="(.*\/(\d{4})\/(\d{2})\/dm(\d{2})(\d{2})(?:\_\d+)?\.xls)"[^\(]*\(.+(\d{2}).+(\d{2})/g) {
-		$link = $1, $last_time = -1 if ($5*24*60+$6*60+$7 <= $last_time);
+		$link = $1, $last_time = -1 if (timelocal(0, $7, $6, $5, $4-1, $2-1900) <= $last_time);
 	}
 
 	if($link) {
@@ -128,7 +131,9 @@ This module fetches metal quotes information from the Sberbank (Savings
 
 It's not loaded as default Finance::Quote module, so you need create it
  by Finance::Quote->new("Sberbank"). If you want it to load by default,
- make changes to Finance::Quote default module loader.
+ make changes to Finance::Quote default module loader, or use 
+ FQ_LOAD_QUOTELET environment variable. Gnucash example:
+	FQ_LOAD_QUOTELET="-defaults Sberbank" gnucash
 
 =head1 LABELS RETURNED
 

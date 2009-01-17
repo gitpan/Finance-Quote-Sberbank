@@ -1,6 +1,10 @@
 Revision history for Perl extension Finance::Quote::Sberbank.
 
-0.01  Sun Dec 28 23:09:27 2008
+0.02  2009/01/17 02:26:28 
+	- proper TZ handling
+	- run tests only if $ENV{ONLINE_TEST} is set
+
+0.01  2008/12/28 23:09:27 
 	- original version; created by h2xs 1.23 with options
 		-AX -n Finance::Quote::Sberbank
 
