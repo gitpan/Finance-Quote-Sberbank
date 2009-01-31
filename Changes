@@ -1,5 +1,8 @@
 Revision history for Perl extension Finance::Quote::Sberbank.
 
+0.03  2009/02/01 01:04:12
+        - use Spreadsheet::ParseExcel instead of Spreadsheet:Read, die to number formating limitations
+        
 0.02  2009/01/17 02:26:28 
 	- proper TZ handling
 	- run tests only if $ENV{ONLINE_TEST} is set

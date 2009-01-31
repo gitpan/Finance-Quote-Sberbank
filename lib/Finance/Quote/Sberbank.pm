@@ -18,13 +18,13 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(
 );
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 our $SBERBANK_URL = "http://sbrf.ru/ru/valkprev/archive_1/";
 
 use LWP::UserAgent;
 use HTTP::Request::Common;
-use Spreadsheet::Read;
+use Spreadsheet::ParseExcel;
 use Time::Local;
 use POSIX;
 
@@ -73,9 +73,11 @@ sub sberbank {
 			return wantarray() ? %info : \%info;
 		}
 		$content = $response->content;
-		my $xls = ReadData($content);
+		my $xls = Spreadsheet::ParseExcel::Workbook->Parse(\$content);
+                my $sheet = $xls->{Worksheet}[0];
+		
 		my $start = 1;
-		while($xls->[1]{"A$start"} !~ /\d+\. Котировки продажи и покупки драгоценных металлов в обезличенном виде/ && $start < 100) {
+		while($sheet->{Cells}[$start][0]->Value !~ /\d+\. Котировки продажи и покупки драгоценных металлов в обезличенном виде/ && $start < 100) {
 			$start++;
 		}
 		if($start != 100) {
@@ -85,18 +87,18 @@ sub sberbank {
 				'Серебро' => 'SBRF.AG',
 				'Платина' => 'SBRF.PT',
 			);
-			while($xls->[1]{"A$start"} && $start < 100) {
+			while($sheet->{Cells}[$start][0] && $start < 100) {
 				$start++;
-				my $name = $xls->[1]{"A$start"};
+				my $name = $sheet->{Cells}[$start][0];
 				if($name) {
-					my $stock = $map{$name};
+					my $stock = $map{$name->Value};
 					next unless($stock);
 					$info{$stock, "symbol"} = $stock;
 					$info{$stock, "name"} = $name;
 					$info{$stock, "currency"} = "RUB";
 					$info{$stock, "method"} = "sberbank";
-					$info{$stock, "bid"} = $xls->[1]{"E$start"};
-					$info{$stock, "ask"} = $xls->[1]{"C$start"};
+					$info{$stock, "bid"} = $sheet->{Cells}[$start][4]->{Val};
+					$info{$stock, "ask"} = $sheet->{Cells}[$start][2]->{Val};
 					$info{$stock, "last"} = $info{$stock, "bid"};
 					$quoter->store_date(\%info, $stock, {today => 1});
 					$info{$stock, "success"} = 1;

@@ -5,7 +5,7 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     NAME              => 'Finance::Quote::Sberbank',
     VERSION_FROM      => 'lib/Finance/Quote/Sberbank.pm', # finds $VERSION
-    PREREQ_PM         => { Finance::Quote => 0, Spreadsheet::Read => 0 }, # e.g., Module::Name => 1.1
+    PREREQ_PM         => { Finance::Quote => 0, Spreadsheet::ParseExcel => 0 }, # e.g., Module::Name => 1.1
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  => 'lib/Finance/Quote/Sberbank.pm', # retrieve abstract from module
        AUTHOR         => 'Alexander Korolyoff <kilork@yandex.ru>') : ()),
