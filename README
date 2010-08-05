@@ -1,4 +1,4 @@
-Finance-Quote-Sberbank version 0.03
+Finance-Quote-Sberbank version 0.04
 ===================================
 
 Obtain quotes from Sberbank (Savings Bank of the Russian Federation)
@@ -17,7 +17,7 @@ DEPENDENCIES
 This module requires these other modules and libraries:
 
   Finance::Quote
-  Spreadsheet::Read
+  Spreadsheet::ParseExcel
 
 DESCRIPTION
  

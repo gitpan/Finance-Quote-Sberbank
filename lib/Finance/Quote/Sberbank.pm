@@ -9,108 +9,122 @@ require Exporter;
 
 our @ISA = qw(Exporter);
 
-our %EXPORT_TAGS = ( 'all' => [ qw(
-	
-) ] );
+our %EXPORT_TAGS = (
+    'all' => [
+        qw(
+
+          )
+    ]
+);
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
 our @EXPORT = qw(
 );
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 our $SBERBANK_URL = "http://sbrf.ru/ru/valkprev/archive_1/";
 
 use LWP::UserAgent;
 use HTTP::Request::Common;
 use Spreadsheet::ParseExcel;
-use Time::Local;
-use POSIX;
 
 sub methods { return ( sberbank => \&sberbank ); }
 
 {
-	my @labels = qw/name last bid ask date isodate currency/;
-	
-	sub labels { return ( sberbank => \@labels ); }
+    my @labels = qw/name last bid ask date isodate currency/;
+
+    sub labels { return ( sberbank => \@labels ); }
 }
 
 sub sberbank {
-	my $quoter = shift;
-	my @stocks = @_;
-	my %info;
-	my $last_time = time;
-	my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = gmtime($last_time);
-	$year += 1900;
-	$mon++;
-	my $ua = $quoter->user_agent;
-	my $url = "http://sbrf.ru/ru/valkprev/archive_1/index.php?year114=${year}&month114=${mon}";
-	my $response = $ua->request(GET $url);
-	unless ($response->is_success) {
-		foreach my $stock (@stocks) {
-			$info{$stock, "success"} = 0;
-			$info{$stock, "errormsg"} = "HTTP failure";
-		}
-		return wantarray() ? %info : \%info;
-	}
-	my $link = "";
-	my $content = $response->content;
-	$ENV{TZ} = 'Europe/Moscow';
-	POSIX::tzset(); 
-	while($content =~ /<li class="xls"><a href="(.*\/(\d{4})\/(\d{2})\/dm(\d{2})(\d{2})(?:\_\d+)?\.xls)"[^\(]*\(.+(\d{2}).+(\d{2})/g) {
-		$link = $1, $last_time = -1 if (timelocal(0, $7, $6, $5, $4-1, $2-1900) <= $last_time);
-	}
+    my $quoter = shift;
+    my @stocks = @_;
+    my %info;
+    my $ua       = $quoter->user_agent;
+    my $url      = "http://sbrf.ru/ru/valkprev/archive_1/";
+    my $response = $ua->request( GET $url);
 
-	if($link) {
-		$link = "http://sbrf.ru".$link if ($link =~ /^\//);
-		$response = $ua->request(GET $link);
-		unless ($response->is_success) {
-			foreach my $stock (@stocks) {
-				$info{$stock, "success"} = 0;
-				$info{$stock, "errormsg"} = "HTTP failure";
-			}
-			return wantarray() ? %info : \%info;
-		}
-		$content = $response->content;
-		my $xls = Spreadsheet::ParseExcel::Workbook->Parse(\$content);
-                my $sheet = $xls->{Worksheet}[0];
-		
-		my $start = 1;
-		while($sheet->{Cells}[$start][0]->Value !~ /\d+\. Котировки продажи и покупки драгоценных металлов в обезличенном виде/ && $start < 100) {
-			$start++;
-		}
-		if($start != 100) {
-			my %map = (
-				'Золото' => 'SBRF.AU',
-				'Палладий' => 'SBRF.PD',
-				'Серебро' => 'SBRF.AG',
-				'Платина' => 'SBRF.PT',
-			);
-			while($sheet->{Cells}[$start][0] && $start < 100) {
-				$start++;
-				my $name = $sheet->{Cells}[$start][0];
-				if($name) {
-					my $stock = $map{$name->Value};
-					next unless($stock);
-					$info{$stock, "symbol"} = $stock;
-					$info{$stock, "name"} = $name;
-					$info{$stock, "currency"} = "RUB";
-					$info{$stock, "method"} = "sberbank";
-					$info{$stock, "bid"} = $sheet->{Cells}[$start][4]->{Val};
-					$info{$stock, "ask"} = $sheet->{Cells}[$start][2]->{Val};
-					$info{$stock, "last"} = $info{$stock, "bid"};
-					$quoter->store_date(\%info, $stock, {today => 1});
-					$info{$stock, "success"} = 1;
-				}
-			}
-		}
-		return wantarray() ? %info : \%info;
-	}
+    unless ( $response->is_success ) {
+        foreach my $stock (@stocks) {
+            $info{ $stock, "success" }  = 0;
+            $info{ $stock, "errormsg" } = "HTTP failure";
+        }
+        return wantarray() ? %info : \%info;
+    }
+    my $link    = "";
+    my $content = $response->content;
+    $link = $1
+      if $content =~
+/<li class="xls"><a href="(.*\/(\d{4})\/(\d{2})\/dm(\d{2})(\d{2})(?:\_\d+)?\.xls)"[^\(]*\(.+(\d{2}).+(\d{2})/g;
+    if ($link) {
+        $link = "http://sbrf.ru" . $link if ( $link =~ /^\// );
+        $response = $ua->request( GET $link);
+        unless ( $response->is_success ) {
+            foreach my $stock (@stocks) {
+                $info{ $stock, "success" }  = 0;
+                $info{ $stock, "errormsg" } = "HTTP failure";
+            }
+            return wantarray() ? %info : \%info;
+        }
+        $content = $response->content;
+        my $xls   = Spreadsheet::ParseExcel::Workbook->Parse( \$content );
+        my $sheet = $xls->{Worksheet}[0];
+
+        my ( $row_min, $row_max ) = $sheet->row_range();
+        my ( $col_min, $col_max ) = $sheet->col_range();
+        my $start    = $row_min;
+        my $startcol = $col_min;
+        while ($start < $row_max
+            && $startcol < $col_max
+            && !$sheet->get_cell( $start, $startcol ) )
+        {
+            $startcol++;
+            $start++, $startcol = $col_min
+              if $startcol == $col_max;
+        }
+        while ( $sheet->get_cell( $start, $startcol )->Value !~
+/\d+\. Котировки продажи и покупки драгоценных металлов в обезличенном виде/
+            && $start < $row_max )
+        {
+            $start++;
+        }
+        if ( $start != $row_max ) {
+            my %map = (
+                'Золото'     => 'SBRF.AU',
+                'Палладий' => 'SBRF.PD',
+                'Серебро'   => 'SBRF.AG',
+                'Платина'   => 'SBRF.PT',
+            );
+            while ( $sheet->get_cell( $start, $startcol ) && $start < $row_max )
+            {
+                $start++;
+                my $name = $sheet->get_cell( $start, $startcol );
+                if ($name) {
+                    my $stock = $map{ $name->Value };
+                    next unless ($stock);
+                    $info{ $stock, "symbol" }   = $stock;
+                    $info{ $stock, "name" }     = $name;
+                    $info{ $stock, "currency" } = "RUB";
+                    $info{ $stock, "method" }   = "sberbank";
+                    $info{ $stock, "bid" } =
+                      $sheet->get_cell( $start, $startcol + 4 )->{Val};
+                    $info{ $stock, "ask" } =
+                      $sheet->get_cell( $start, $startcol + 2 )->{Val};
+                    $info{ $stock, "last" } = $info{ $stock, "bid" };
+                    $quoter->store_date( \%info, $stock, { today => 1 } );
+                    $info{ $stock, "success" } = 1;
+                }
+            }
+        }
+        return wantarray() ? %info : \%info;
+    }
 }
 
 1;
 __END__
+
 =head1 NAME
 
 Finance::Quote::Sberbank - Obtain quotes from Sberbank (Savings Bank of
